@@ -1,0 +1,74 @@
+package com.example.selenium;
+
+import java.net.HttpURLConnection;
+import java.net.URL;
+import java.util.List;
+import org.openqa.selenium.By;
+import org.openqa.selenium.WebDriver;
+import org.openqa.selenium.WebElement;
+import org.openqa.selenium.chrome.ChromeDriver;
+import org.testng.annotations.AfterClass;
+import org.testng.annotations.BeforeClass;
+import org.testng.annotations.Test;
+import io.github.bonigarcia.wdm.WebDriverManager;
+
+public class brokenImage {
+    WebDriver driver;
+
+    @BeforeClass
+    public void setup() {
+        WebDriverManager.chromedriver().setup();
+        driver = new ChromeDriver();
+        driver.manage().window().maximize();
+    }
+
+    @Test
+    public void testBrokenLinks() {
+        driver.get("https://www.deadlinkchecker.com"); // Change to the website you want to test
+
+        // Find all links on the webpage
+        List<WebElement> links = driver.findElements(By.tagName("a"));
+
+        for (WebElement link : links) {
+            String url = link.getAttribute("href");
+
+            // Skip null or empty URLs
+            if (url == null || url.isEmpty()) {
+                System.out.println("⚠️ Skipping empty URL.");
+                continue;
+            }
+
+            // Ensure URL starts with "http" or "https"
+            if (!url.startsWith("http")) {
+                url = "https://" + url;
+            }
+
+            // Check if the URL is broken
+            verifyBrokenLink(url);
+        }
+    }
+
+    public void verifyBrokenLink(String url) {
+        try {
+            HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
+            connection.setRequestMethod("HEAD"); // Use HEAD to avoid downloading content
+            connection.connect();
+            int responseCode = connection.getResponseCode();
+
+            if (responseCode >= 400) {
+                System.out.println("❌ Broken Link: " + url + " | Response Code: " + responseCode);
+            } else {
+                System.out.println("✅ Working Link: " + url + " | Response Code: " + responseCode);
+            }
+
+            connection.disconnect();
+        } catch (Exception e) {
+            System.out.println("❌ Error Checking Link: " + url + " | Exception: " + e.getMessage());
+        }
+    }
+
+    @AfterClass
+    public void teardown() {
+        driver.quit(); // Close the browser
+    }
+}
